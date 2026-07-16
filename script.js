@@ -200,9 +200,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { passive: true });
   }
 
-  /* ---------- Contact form handling ---------- */
+  /* ---------- Contact form handling (Formspree backend) ---------- */
+  // 1. Go to https://formspree.io and sign up for a free account.
+  // 2. Create a new form (any name, e.g. "Campaign Suggestions").
+  // 3. Formspree gives you an endpoint like: https://formspree.io/f/xxxxaaaa
+  //    Copy the part after "/f/" (e.g. "xxxxaaaa") into FORMSPREE_FORM_ID below.
+  // 4. Submissions will arrive in your email, and also show up in your
+  //    Formspree dashboard under that form.
+  // 5. The free plan requires you to confirm your first submission by clicking
+  //    a link Formspree emails you — do one test submission after setup.
+  const FORMSPREE_FORM_ID = 'mbdndknb';
+
   const form = document.getElementById('contact-form');
   const formStatus = document.getElementById('form-status');
+  const isFormConfigured = FORMSPREE_FORM_ID !== 'YOUR_FORMSPREE_FORM_ID_HERE';
 
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -216,13 +227,35 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // No backend is connected — this confirms receipt locally.
-    // To collect real responses, connect this form to a service
-    // such as Google Forms, Formspree, or a school email address.
-    formStatus.textContent = `Thank you, ${name}! Your suggestion has been noted.`;
-    form.reset();
+    if (!isFormConfigured) {
+      // Formspree isn't connected yet — see the setup notes above this block.
+      formStatus.textContent = `Thank you, ${name}! (Note: form storage isn't connected yet — see script.js.)`;
+      form.reset();
+      setTimeout(() => { formStatus.textContent = ''; }, 6000);
+      return;
+    }
 
-    setTimeout(() => { formStatus.textContent = ''; }, 5000);
+    const submitUrl = `https://formspree.io/f/${FORMSPREE_FORM_ID}`;
+
+    fetch(submitUrl, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: new FormData(form)
+    })
+      .then((response) => {
+        if (response.ok) {
+          formStatus.textContent = `Thank you, ${name}! Your suggestion has been sent.`;
+          form.reset();
+        } else {
+          formStatus.textContent = 'Something went wrong sending that. Please try again.';
+        }
+      })
+      .catch(() => {
+        formStatus.textContent = 'Something went wrong sending that. Please check your connection and try again.';
+      })
+      .finally(() => {
+        setTimeout(() => { formStatus.textContent = ''; }, 6000);
+      });
   });
 
 });
